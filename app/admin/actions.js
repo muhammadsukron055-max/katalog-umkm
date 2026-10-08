@@ -156,3 +156,73 @@ export async function tambahProdukAdmin(prevState, formData) {
 
   redirect("/admin?sukses=tambah");
 }
+
+/**
+ * Server Action untuk memperbarui produk di database Supabase.
+ * Wajib memeriksa autentikasi admin di server sebelum melakukan update.
+ */
+export async function ubahProdukAdmin(prevState, formData) {
+  const form =
+    formData instanceof FormData
+      ? formData
+      : prevState instanceof FormData
+        ? prevState
+        : null;
+
+  const supabase = await buatKoneksiAdmin();
+
+  // Wajib periksa di server bahwa admin sudah login
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { error: "Sesi telah berakhir. Silakan login kembali." };
+  }
+
+  const id = form?.get("id")?.toString();
+  const nama = form?.get("nama")?.toString().trim();
+  const hargaStr = form?.get("harga")?.toString().trim();
+  const kategori = form?.get("kategori")?.toString().trim() || null;
+  const foto_url = form?.get("foto_url")?.toString().trim() || null;
+  const deskripsi = form?.get("deskripsi")?.toString().trim() || null;
+
+  if (!id) {
+    return { error: "ID produk tidak valid." };
+  }
+
+  // Validasi input dasar
+  if (!nama) {
+    return { error: "Nama produk wajib diisi." };
+  }
+
+  if (!hargaStr || isNaN(Number(hargaStr)) || Number(hargaStr) < 0) {
+    return { error: "Harga produk harus berupa angka dan tidak boleh negatif." };
+  }
+
+  const harga = Math.round(Number(hargaStr));
+
+  const { error: updateError } = await supabase
+    .from("produk")
+    .update({
+      nama,
+      harga,
+      kategori,
+      foto_url,
+      deskripsi,
+    })
+    .eq("id", id);
+
+  if (updateError) {
+    return {
+      error: updateError.message || "Gagal memperbarui produk di database.",
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath(`/produk/${id}`);
+  revalidatePath("/");
+
+  redirect("/admin?sukses=ubah");
+}

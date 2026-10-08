@@ -41,6 +41,12 @@ export default async function HalamanAdmin({ searchParams }) {
         </p>
       )}
 
+      {sukses === "ubah" && (
+        <p className="rounded-lg border border-garis bg-permukaan p-3 text-sm text-utama">
+          Produk berhasil diperbarui.
+        </p>
+      )}
+
       {pesanError ? (
         <div className="rounded-xl border border-garis bg-permukaan p-6 text-bahaya">
           <p className="font-semibold">Gagal memuat produk</p>
