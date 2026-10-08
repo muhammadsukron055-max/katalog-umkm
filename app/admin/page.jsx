@@ -6,7 +6,7 @@ import { buatKoneksiServer } from "@/lib/supabase";
 export const revalidate = 0;
 
 export default async function HalamanAdmin({ searchParams }) {
-  const { sukses } = (await searchParams) || {};
+  const { sukses, error: errorQuery } = (await searchParams) || {};
   let daftarProduk = [];
   let pesanError = null;
 
@@ -45,6 +45,18 @@ export default async function HalamanAdmin({ searchParams }) {
         <p className="rounded-lg border border-garis bg-permukaan p-3 text-sm text-utama">
           Produk berhasil diperbarui.
         </p>
+      )}
+
+      {sukses === "hapus" && (
+        <p className="rounded-lg border border-garis bg-permukaan p-3 text-sm text-utama">
+          Produk berhasil dihapus.
+        </p>
+      )}
+
+      {errorQuery && (
+        <div className="rounded-xl border border-garis bg-permukaan p-4 text-sm text-bahaya">
+          {errorQuery}
+        </div>
       )}
 
       {pesanError ? (
