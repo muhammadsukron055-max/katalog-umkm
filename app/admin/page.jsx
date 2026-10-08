@@ -5,7 +5,8 @@ import { buatKoneksiServer } from "@/lib/supabase";
 
 export const revalidate = 0;
 
-export default async function HalamanAdmin() {
+export default async function HalamanAdmin({ searchParams }) {
+  const { sukses } = (await searchParams) || {};
   let daftarProduk = [];
   let pesanError = null;
 
@@ -33,6 +34,12 @@ export default async function HalamanAdmin() {
         {/* US-08 (bonus): tambah produk */}
         <Tombol href="/admin/produk/baru">Tambah produk</Tombol>
       </div>
+
+      {sukses === "tambah" && (
+        <p className="rounded-lg border border-garis bg-permukaan p-3 text-sm text-utama">
+          Produk berhasil ditambahkan.
+        </p>
+      )}
 
       {pesanError ? (
         <div className="rounded-xl border border-garis bg-permukaan p-6 text-bahaya">
