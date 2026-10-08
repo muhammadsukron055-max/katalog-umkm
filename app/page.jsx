@@ -1,28 +1,61 @@
+import { Suspense } from "react";
 import KartuProduk from "@/components/KartuProduk";
+import FilterKatalog from "@/components/FilterKatalog";
 import { toko } from "@/lib/toko";
 import { buatKoneksiServer } from "@/lib/supabase";
 
 export const revalidate = 0;
 
-export default async function HalamanKatalog() {
-  let daftarProduk = [];
+export default async function HalamanKatalog({ searchParams }) {
+  const { cari, kategori } = (await searchParams) || {};
+  let semuaProduk = [];
   let pesanError = null;
 
   try {
     const supabase = buatKoneksiServer();
-    const { data, error } = await supabase
-      .from("produk")
-      .select("*")
-      .order("id", { ascending: true });
+    let query = supabase.from("produk").select("*");
+
+    if (cari) {
+      query = query.ilike("nama", `%${cari}%`);
+    }
+
+    if (kategori) {
+      query = query.eq("kategori", kategori);
+    }
+
+    const { data, error } = await query.order("id", { ascending: true });
 
     if (error) {
       pesanError = error.message;
     } else {
-      daftarProduk = data || [];
+      semuaProduk = data || [];
     }
   } catch (err) {
     pesanError = err.message || "Gagal terhubung ke database.";
   }
+
+  // Ambil daftar kategori unik untuk filter (selalu dari semua produk)
+  let daftarKategori = [];
+  if (!pesanError) {
+    try {
+      const supabase = buatKoneksiServer();
+      const { data: semuaData } = await supabase
+        .from("produk")
+        .select("kategori");
+
+      if (semuaData) {
+        const set = new Set();
+        semuaData.forEach((p) => {
+          if (p.kategori) set.add(p.kategori);
+        });
+        daftarKategori = Array.from(set).sort();
+      }
+    } catch {
+      // Abaikan error, filter kategori saja yang tidak tampil
+    }
+  }
+
+  const adaFilter = cari || kategori;
 
   return (
     <>
@@ -39,18 +72,24 @@ export default async function HalamanKatalog() {
           Produk kami
         </h2>
 
+        <Suspense fallback={null}>
+          <FilterKatalog daftarKategori={daftarKategori} />
+        </Suspense>
+
         {pesanError ? (
           <div className="rounded-xl border border-garis bg-permukaan p-6 text-bahaya">
             <p className="font-semibold">Gagal memuat produk</p>
             <p className="mt-1 text-sm text-teks-lembut">{pesanError}</p>
           </div>
-        ) : daftarProduk.length === 0 ? (
+        ) : semuaProduk.length === 0 ? (
           <p className="rounded-xl border border-dashed border-garis bg-permukaan p-8 text-center text-teks-lembut">
-            Belum ada produk
+            {adaFilter
+              ? "Tidak ada produk yang cocok dengan pencarian atau filter."
+              : "Belum ada produk"}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {daftarProduk.map((produk) => (
+            {semuaProduk.map((produk) => (
               <KartuProduk key={produk.id} produk={produk} />
             ))}
           </div>
@@ -59,4 +98,3 @@ export default async function HalamanKatalog() {
     </>
   );
 }
-
