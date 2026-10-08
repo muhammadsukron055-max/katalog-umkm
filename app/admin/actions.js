@@ -226,3 +226,47 @@ export async function ubahProdukAdmin(prevState, formData) {
 
   redirect("/admin?sukses=ubah");
 }
+
+/**
+ * Server Action untuk menghapus produk dari database Supabase.
+ * Wajib memeriksa autentikasi admin di server sebelum melakukan delete.
+ */
+export async function hapusProdukAdmin(formData) {
+  const form = formData instanceof FormData ? formData : null;
+  const id = form?.get("id")?.toString();
+
+  if (!id) {
+    redirect("/admin?error=" + encodeURIComponent("ID produk tidak valid."));
+  }
+
+  const supabase = await buatKoneksiAdmin();
+
+  // Wajib periksa di server bahwa admin sudah login
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect("/admin/login");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("produk")
+    .delete()
+    .eq("id", id);
+
+  if (deleteError) {
+    redirect(
+      "/admin?error=" +
+        encodeURIComponent(
+          deleteError.message || "Gagal menghapus produk dari database."
+        )
+    );
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+
+  redirect("/admin?sukses=hapus");
+}
